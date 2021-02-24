@@ -1,0 +1,10 @@
+url data 
+rickandmortyapi.com/api/character/
+
+useeffect
+- secara default akan di jalankan setiap kali component di re render
+- tambah [] setelah function agar useeffect di jalankan saat pertama kali render
+- useeffect di jalankan saat dom selesai di update sama seperti componentdidmount/componentdidupdate 
+  di class component hanya saja dalam 1 fungsi
+- [] untuk trigger saat kapan useeffect harus di render ulang
+- isi dari [] adalah state yang di amati
