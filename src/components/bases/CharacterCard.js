@@ -19,7 +19,7 @@ function CharacterCard(props) {
                             Came from {character.origin.name}
                         </p>
                     </div>
-                    <nav className="level is-mobile">
+                    <div className="level is-mobile">
                         <div className="level-left">
                             <span className={`level-item ${character.status === 'Alive' ? 'has-text-danger' : 'has-text-grey'}`}
                                 style={{
@@ -33,7 +33,7 @@ function CharacterCard(props) {
                                 {character.status}
                             </span>
                         </div>
-                    </nav>
+                    </div>
                 </div>
             </article>
         </div>
