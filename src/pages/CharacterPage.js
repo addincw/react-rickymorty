@@ -1,11 +1,21 @@
 import React, { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { connect } from "react-redux";
+import { ApolloClient, InMemoryCache, gql } from '@apollo/client';
 
-import { BASE_URL } from '../Contants';
+import { BASE_URL, GQL_BASE_URL } from '../Contants';
 import { selectCharacter } from "../redux/actions";
 
 import Header from "../components/containers/Header";
+
+const graphqlClient = new ApolloClient({
+    uri: GQL_BASE_URL,
+    cache: new InMemoryCache(),
+    headers: {
+        "x-rapidapi-key": "e72d7cd00fmsh6966eb374c88c60p1a6fa7jsnc9812567753f",
+        "x-rapidapi-host": "rick-and-morty-graphql.p.rapidapi.com"
+    }
+});
 
 const mapStateToProps = (state) => {
     return {
@@ -27,17 +37,36 @@ function CharacterPage({ characters, character, selectCharacter }) {
         }
 
         if (!result) {
-            fetch(`${BASE_URL}/${characterId}`)
-                .then((response) => response.json())
-                .then((result) => {
-                    selectCharacter(result)
+            graphqlClient
+                .query({
+                    variables: { id: characterId },
+                    query: gql`
+                    query($id: ID!) { 
+                        character(id: $id) { 
+                            id
+                            name
+                            image
+                            species
+                            status
+                            episode{ episode }
+                            origin{ name }
+                            location{ name }
+                        }
+                    }
+                `
+                })
+                .then((response) => {
+                    if (response.error) throw response;
+
+                    const { character } = response.data
+
+                    selectCharacter(character)
                     setErrorMessage('')
                 })
                 .catch(({ error }) => {
                     selectCharacter({})
                     setErrorMessage(error)
                 })
-
         } else {
             selectCharacter(result)
             setErrorMessage('')
@@ -53,7 +82,7 @@ function CharacterPage({ characters, character, selectCharacter }) {
                     <div className="container">
                         <div className="columns">
                             <figure class="pl-3 image is-128x128">
-                                <img src={character.image} />
+                                <img src={character.image} alt={'image ' + character.name} />
                             </figure>
                             <div className="pl-5">
                                 <h1 className="title">{character.name}</h1>
@@ -81,19 +110,19 @@ function CharacterPage({ characters, character, selectCharacter }) {
 
                         <div className="columns mb-5" style={{ flexWrap: "wrap" }}>
                             {character.episode.map((episode) => {
-                                const episodeParams = episode.split("/")
+                                // const episodeParams = episode.split("/")
 
                                 return (
                                     <div key={episode} className="column is-3" style={{ display: "flex", alignItems: "stretch" }}>
                                         <div class="card" style={{ display: "flex" }}>
                                             <div className="card-image" style={{ width: 150 }}>
                                                 <figure class="image" style={{ height: "100%" }}>
-                                                    <img style={{ height: "100%" }} src="https://rickandmortyapi.com/api/character/avatar/104.jpeg" alt="Placeholder image" />
+                                                    <img style={{ height: "100%" }} src="https://rickandmortyapi.com/api/character/avatar/104.jpeg" alt="noimage" />
                                                 </figure>
                                             </div>
                                             <div class="card-content">
-                                                <p class="title  is-size-4">Episode {episodeParams.pop()}</p>
-                                                <p class="subtitle is-size-7"> {episode} </p>
+                                                <p class="title  is-size-4">Episode {episode.episode}</p>
+                                                <p class="subtitle is-size-7"> {`${BASE_URL}/${character.id}/${episode.episode}`} </p>
                                             </div>
                                         </div>
                                     </div>

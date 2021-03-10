@@ -1,19 +1,26 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom';
 import { connect } from "react-redux";
+import { ApolloClient, InMemoryCache, gql } from '@apollo/client';
 
-import { BASE_URL } from '../Contants';
+import { BASE_URL, GQL_BASE_URL } from '../Contants';
 import { storeCharacters } from "../redux/actions";
 
 import CharacterCard from "../components/bases/CharacterCard";
 import Header from "../components/containers/Header";
 import Pagination from "../components/containers/Pagination";
 
+const graphqlClient = new ApolloClient({
+    uri: GQL_BASE_URL,
+    cache: new InMemoryCache(),
+    headers: {
+        "x-rapidapi-key": "e72d7cd00fmsh6966eb374c88c60p1a6fa7jsnc9812567753f",
+        "x-rapidapi-host": "rick-and-morty-graphql.p.rapidapi.com"
+    }
+});
 
 const mapStateToProps = (state) => {
-    return {
-        characters: state.characters.all
-    }
+    return { characters: state.characters.all }
 }
 const mapActionToProps = { storeCharacters }
 
@@ -36,19 +43,44 @@ function LandingPage({ characters, storeCharacters }) {
     const handleOnNext = () => setCurrentPage(currentPage + 1);
 
     useEffect(() => {
-        fetch(`${BASE_URL}?page=${currentPage}&name=${search}`)
-            .then((response) => response.json())
-            .then((data) => {
-                if (data.error) throw data;
+        graphqlClient
+            .query({
+                variables: {
+                    page: currentPage,
+                    search
+                },
+                query: gql`
+                    query($page: Int!, $search: String) { 
+                        characters(page: $page, filter: { name: $search }) { 
+                            info { 
+                                count
+                                pages
+                                next
+                                prev 
+                            } 
+                            results{
+                                id
+                                name
+                                image
+                                species
+                                status
+                                episode{ episode }
+                                origin{ name }
+                                location{ name }
+                            }
+                        }
+                    }
+                `
+            })
+            .then((response) => {
+                if (response.error) throw response;
 
-                const nextPageUrl = data.info.next || ''
-                let nextPageParams = nextPageUrl.substring(nextPageUrl.indexOf('?') + 1)
-                nextPageParams = new URLSearchParams(nextPageParams)
+                const { info, results } = response.data.characters
 
-                if (nextPageParams.get('page')) setCurrentPage(parseInt(nextPageParams.get('page')) - 1)
+                if (info.next) setCurrentPage(parseInt(info.next) - 1)
 
-                setInfo(data.info)
-                storeCharacters(data.results)
+                setInfo(info)
+                storeCharacters(results)
                 setErrorMessage('')
             })
             .catch(({ error }) => {
